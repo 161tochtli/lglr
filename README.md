@@ -105,6 +105,19 @@ Una vez corriendo el backend:
 
 ---
 
+## Colecciones Postman/Insomnia
+
+El proyecto incluye colecciones completas para probar la API:
+
+| Archivo | Descripción |
+|---------|-------------|
+| **lglr_API.postman_collection.json** | Colección Postman con todos los endpoints, ejemplos, tests y scripts |
+| **lglr_API.insomnia_collection.json** | Colección Insomnia con todos los endpoints y ejemplos |
+
+Configurar variables si es necesario (default: `base_url = http://localhost:8000`)
+
+---
+
 ## Idempotency Key
 
 La API implementa **idempotency keys** siguiendo el patrón estándar de APIs REST para prevenir duplicados en operaciones financieras.
@@ -149,18 +162,6 @@ curl -X POST http://localhost:8000/transactions/create \
 ✅ **Seguridad financiera** en operaciones críticas  
 ✅ **Patrón estándar** de la industria (Stripe, PayPal, etc.)
 
----
-
-## Colecciones Postman/Insomnia
-
-El proyecto incluye colecciones completas para probar la API:
-
-| Archivo | Descripción |
-|---------|-------------|
-| **lglr_API.postman_collection.json** | Colección Postman con todos los endpoints, ejemplos, tests y scripts |
-| **lglr_API.insomnia_collection.json** | Colección Insomnia con todos los endpoints y ejemplos |
-
-Configurar variables si es necesario (default: `base_url = http://localhost:8000`)
 ---
 
 ## Testing
