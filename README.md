@@ -93,74 +93,6 @@
 
 ---
 
-## Módulos del Backend
-
-### 📁 `app/api/` - Endpoints REST
-
-| Archivo | Endpoint | Descripción |
-|---------|----------|-------------|
-| `transactions.py` | `POST /transactions/create` | Crear transacción (idempotente) |
-| | `POST /transactions/async-process` | Procesar transacción async |
-| | `PATCH /transactions/{id}/status` | Cambiar estado de transacción |
-| | `GET /transactions` | Listar transacciones |
-| `summaries.py` | `POST /assistant/summarize` | Resumir texto con OpenAI |
-| `rpa.py` | `POST /rpa/wikipedia-summarize` | Bot: Wikipedia → Resumen |
-| `logs.py` | `GET /logs` | Obtener logs de eventos |
-| | `GET /logs/grouped` | Logs agrupados por correlation_id |
-| | `GET /logs/transaction/{id}` | Logs de una transacción específica |
-| | `GET /logs/request/{id}` | Logs de un request específico |
-| `websocket.py` | `WS /ws/transactions/stream` | Actualizaciones en tiempo real |
-| `main.py` | `GET /health` | Health check endpoint |
-
-### 📁 `app/domain/` - Lógica de Negocio
-
-| Archivo | Contenido |
-|---------|-----------|
-| `models.py` | `Transaction`, `Summary`, `TransactionStatus`, `TransactionType` |
-| `events.py` | Eventos de dominio: `transaction_created`, `status_changed`, etc. |
-| `correlation.py` | Gestión de correlation IDs para trazabilidad |
-
-### 📁 `app/repos/` - Repositorios (Persistencia)
-
-| Archivo | Implementación |
-|---------|----------------|
-| `ports.py` | Interfaces/Protocols (`TransactionRepo`, `SummaryRepo`) |
-| `in_memory.py` | Repositorios en memoria (testing) |
-| `sqlite.py` | Persistencia SQLite |
-| `postgres.py` | Persistencia PostgreSQL (producción) |
-
-### 📁 `app/infra/` - Infraestructura
-
-| Archivo | Función |
-|---------|---------|
-| `queue.py` | `InMemoryQueue`, `RedisQueue` - Colas de mensajes |
-| `openai_client.py` | `OpenAIClientStub`, `OpenAIClientReal` - Cliente OpenAI |
-| `events.py` | `EventBus` - Publicación/suscripción de eventos |
-| `logging.py` | Configuración de structlog |
-| `db.py` | Conexiones SQLite |
-| `postgres.py` | Conexiones PostgreSQL |
-
-### 📁 `app/rpa/` - Automatización
-
-| Archivo | Función |
-|---------|---------|
-| `wikipedia_bot.py` | Bot httpx: busca en Wikipedia y extrae contenido |
-| `extractor.py` | Parser HTML para extraer párrafos de Wikipedia |
-
-### 📁 `app/worker/` - Procesamiento Async
-
-| Archivo | Función |
-|---------|---------|
-| `handler.py` | Procesa jobs de la cola, actualiza estados de transacciones |
-
-### 📁 `app/services/` - Servicios de Aplicación
-
-| Archivo | Función |
-|---------|---------|
-| `summarize.py` | Orquesta: OpenAI client → Persistencia → Eventos |
-
----
-
 ## API Docs (Swagger/OpenAPI)
 
 Una vez corriendo el backend:
@@ -196,14 +128,12 @@ REQUIRE_IDEMPOTENCY_KEY=false
 
 ### Uso
 
-**Frontend (automático):**
-- El frontend genera automáticamente una idempotency key única para cada request
-- No requiere configuración adicional
+**Frontend**
+- El frontend genera automáticamente una idempotency key única para cada request. Si se reenvía la misma key, el servidor retorna la transacción existente.
 
-**API externa (manual):**
+**API externa:**
 - El cliente debe generar un UUID único para cada operación
 - Enviar en el header `Idempotency-Key`
-- Si se reenvía la misma key, el servidor retorna la transacción existente
 
 **Ejemplo:**
 ```bash
@@ -230,49 +160,7 @@ El proyecto incluye colecciones completas para probar la API:
 | **lglr_API.postman_collection.json** | Colección Postman con todos los endpoints, ejemplos, tests y scripts |
 | **lglr_API.insomnia_collection.json** | Colección Insomnia con todos los endpoints y ejemplos |
 
-### Características de las colecciones:
-
-✅ **Todos los endpoints incluidos:**
-- Health Check
-- Transactions (CRUD, idempotencia, async processing)
-- Assistant/Summarize (OpenAI)
-- RPA (Wikipedia bot)
-- Logs (visualización de eventos)
-
-✅ **Variables de entorno preconfiguradas:**
-- `base_url`: http://localhost:8000
-- `user_id`, `transaction_id`, `summary_id`, etc. (se generan automáticamente)
-
-✅ **Ejemplos de requests:**
-- Payloads de ejemplo para cada endpoint
-- Múltiples variantes (ingreso/egreso, diferentes modelos, etc.)
-
-✅ **Tests automáticos:**
-- Validación de status codes
-- Verificación de estructura de respuestas
-- Tests de Postman/Insomnia incluidos
-
-✅ **Documentación:**
-- Descripción detallada de cada endpoint
-- Parámetros explicados
-- Ejemplos de respuestas
-
-### Uso:
-
-**Postman:**
-1. Abrir Postman
-2. File → Import
-3. Seleccionar `lglr_API.postman_collection.json`
-4. Configurar variables si es necesario (default: `base_url = http://localhost:8000`)
-
-**Insomnia:**
-1. Abrir Insomnia
-2. Application → Preferences → Data → Import Data
-3. Seleccionar `lglr_API.insomnia_collection.json`
-4. Configurar variables en el environment si es necesario
-
-**Nota:** Las variables como `transaction_id` se establecen automáticamente al crear transacciones, permitiendo ejecutar los requests en secuencia.
-
+Configurar variables si es necesario (default: `base_url = http://localhost:8000`)
 ---
 
 ## Testing
