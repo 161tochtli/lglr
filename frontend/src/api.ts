@@ -7,12 +7,15 @@ import type { Transaction, NewTransaction, LogEntry, GroupedLogs } from './types
 const API_BASE = '/api';
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
+  // Extract headers separately to merge them correctly
+  const { headers: optionsHeaders, ...restOptions } = options || {};
+  
   const response = await fetch(`${API_BASE}${path}`, {
+    ...restOptions,
     headers: {
       'Content-Type': 'application/json',
-      ...options?.headers,
+      ...optionsHeaders,
     },
-    ...options,
   });
 
   if (!response.ok) {
@@ -32,9 +35,15 @@ export async function listTransactions(limit = 50): Promise<Transaction[]> {
 }
 
 export async function createTransaction(data: NewTransaction): Promise<Transaction> {
+  // Generate idempotency key for safe retries (standard pattern: client generates the key)
+  const idempotencyKey = crypto.randomUUID();
+  
   return request<Transaction>('/transactions/create', {
     method: 'POST',
     body: JSON.stringify(data),
+    headers: {
+      'Idempotency-Key': idempotencyKey,
+    },
   });
 }
 
