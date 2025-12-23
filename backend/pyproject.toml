@@ -1,0 +1,54 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "legali-backend"
+version = "0.1.0"
+description = "Backend scaffold for the technical exercise (FastAPI + pytest + logging)."
+requires-python = ">=3.11"
+dependencies = [
+  "fastapi>=0.110",
+  "uvicorn[standard]>=0.27",
+  "structlog>=24.0",
+  "asgi-correlation-id>=4.3",
+  "psycopg[binary]>=3.1",
+  "pydantic-settings>=2.0",
+  "httpx>=0.27",           # HTTP client for RPA bot + API calls
+  "beautifulsoup4>=4.12",  # HTML parsing for RPA extractor
+]
+
+[project.optional-dependencies]
+test = [
+  "pytest>=8.0",
+  "pytest-asyncio>=0.23",
+  "testcontainers[redis]>=4.0",
+  "redis>=5.0",
+]
+
+# Playwright only needed for e2e tests in devcontainer/CI (not for RPA)
+e2e = [
+  "playwright>=1.40",
+  "pytest-playwright>=0.5",
+]
+
+[tool.setuptools]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["app*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+# Captura logs para assertions (caplog), pero no los imprime por defecto.
+# Para verlos al debug: `pytest -s --log-cli-level=INFO`
+log_cli = false
+log_cli_level = "INFO"
+markers = [
+    "postgres: tests that require PostgreSQL (deselect with: -m 'not postgres')",
+    "slow: tests that are slow (deselect with: -m 'not slow')",
+    "e2e: end-to-end tests that require external services (deselect with: -m 'not e2e')",
+]
+
+
