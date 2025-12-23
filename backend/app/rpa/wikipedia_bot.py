@@ -11,8 +11,6 @@ Can be run as a standalone script or imported as a module.
 Note: Uses httpx instead of Playwright for faster, lighter scraping.
 Wikipedia serves static HTML so no JavaScript rendering is needed.
 """
-from __future__ import annotations
-
 import asyncio
 from dataclasses import dataclass, field
 

@@ -4,8 +4,6 @@ Wikipedia HTML extractor.
 Parses Wikipedia HTML to extract the first paragraph.
 Designed for testability with local HTML fixtures.
 """
-from __future__ import annotations
-
 from dataclasses import dataclass
 
 from bs4 import BeautifulSoup, Tag

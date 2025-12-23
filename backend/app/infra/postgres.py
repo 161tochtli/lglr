@@ -3,8 +3,6 @@ PostgreSQL connection and schema initialization.
 
 Uses psycopg 3 (sync interface) for simplicity; can be swapped to async later.
 """
-from __future__ import annotations
-
 from dataclasses import dataclass
 
 import psycopg

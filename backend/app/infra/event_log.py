@@ -4,8 +4,6 @@ In-memory event log for frontend log viewer.
 Stores recent domain events and exposes them via API.
 Events are grouped by correlation_id (request_id) for easy timeline viewing.
 """
-from __future__ import annotations
-
 from collections import deque
 from dataclasses import dataclass, field
 from datetime import datetime, timezone

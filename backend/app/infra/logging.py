@@ -5,8 +5,6 @@ This module provides structured logging with automatic request correlation ID in
 Uses asgi-correlation-id for request tracking and structlog for structured output.
 """
 
-from __future__ import annotations
-
 import logging
 import sys
 

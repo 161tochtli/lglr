@@ -4,8 +4,6 @@ API endpoint for viewing event logs.
 Provides read-only access to the in-memory event log
 for the frontend log viewer.
 """
-from __future__ import annotations
-
 from typing import Any
 
 from fastapi import APIRouter, Query

@@ -6,8 +6,6 @@ Provides:
 - OpenAIClientStub: Deterministic stub for tests
 - OpenAIClientReal: Real OpenAI API integration
 """
-from __future__ import annotations
-
 from dataclasses import dataclass
 from typing import Protocol
 

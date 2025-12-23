@@ -1,8 +1,6 @@
 """
 API endpoint for triggering the RPA bot.
 """
-from __future__ import annotations
-
 import asyncio
 
 import structlog

@@ -5,8 +5,6 @@ Provides a Protocol for queue clients and implementations:
 - InMemoryQueue: for tests (can drain synchronously)
 - RedisQueue: for production (requires Redis)
 """
-from __future__ import annotations
-
 import json
 import time
 from abc import ABC, abstractmethod

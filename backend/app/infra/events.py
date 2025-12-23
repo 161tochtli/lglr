@@ -4,8 +4,6 @@ Event bus for publishing domain events to subscribers.
 Provides in-memory implementation for simplicity.
 Can be replaced with Redis Pub/Sub for distributed systems.
 """
-from __future__ import annotations
-
 import asyncio
 from abc import ABC, abstractmethod
 from collections import defaultdict

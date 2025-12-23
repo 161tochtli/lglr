@@ -3,8 +3,6 @@ Application settings loaded from environment variables.
 
 Uses pydantic-settings for validation and .env file support.
 """
-from __future__ import annotations
-
 from functools import lru_cache
 from typing import Literal
 

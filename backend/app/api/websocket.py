@@ -4,8 +4,6 @@ WebSocket endpoint for real-time transaction updates.
 Clients connect to /transactions/stream and receive notifications
 when transaction status changes.
 """
-from __future__ import annotations
-
 import asyncio
 import json
 from dataclasses import dataclass, field

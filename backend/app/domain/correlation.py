@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 """
 Correlation IDs used across the system.
 

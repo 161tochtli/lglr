@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import structlog
 from asgi_correlation_id import correlation_id
 from fastapi import APIRouter, HTTPException, Request

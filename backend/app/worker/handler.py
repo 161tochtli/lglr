@@ -9,8 +9,6 @@ The handler is a pure function that:
 
 This design allows testing without a queue.
 """
-from __future__ import annotations
-
 import random
 import time
 from uuid import UUID

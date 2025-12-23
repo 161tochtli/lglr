@@ -3,8 +3,6 @@ PostgreSQL-backed repository implementations.
 
 Uses psycopg 3 sync interface. Matches the Protocol interfaces in ports.py.
 """
-from __future__ import annotations
-
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from decimal import Decimal

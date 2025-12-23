@@ -6,8 +6,6 @@ Encapsulates the business logic for text summarization:
 2. Persists the result to the repository
 3. Logs domain events
 """
-from __future__ import annotations
-
 from dataclasses import dataclass
 
 import structlog
