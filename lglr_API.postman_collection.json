@@ -1,0 +1,831 @@
+{
+	"info": {
+		"_postman_id": "lglr-api-collection",
+		"name": "lglr API",
+		"description": "Colección completa de la API lglr - Backend FastAPI\n\n## Endpoints incluidos:\n- **Transactions**: CRUD de transacciones con idempotencia\n- **Assistant**: Resumen de texto con OpenAI\n- **RPA**: Bot de Wikipedia que busca y resume contenido\n- **Logs**: Visualización de eventos y logs del sistema\n- **Health**: Health check del servicio\n\n## Variables de entorno:\n- `base_url`: URL base del API (default: http://localhost:8000)\n- `user_id`: UUID de usuario de ejemplo\n- `transaction_id`: UUID de transacción (se genera dinámicamente)\n- `request_id`: UUID para correlation (opcional)\n\n## Uso:\n1. Importar esta colección en Postman\n2. Configurar las variables de entorno si es necesario\n3. Ejecutar los requests en orden sugerido",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Health",
+			"item": [
+				{
+					"name": "Health Check",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response has status field\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('status');",
+									"    pm.expect(jsonData.status).to.eql('ok');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/health",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"health"
+							]
+						},
+						"description": "Verifica el estado del servicio API.\n\n**Respuesta esperada:**\n```json\n{\n  \"status\": \"ok\"\n}\n```"
+					},
+					"response": []
+				}
+			],
+			"description": "Endpoints de health check del servicio"
+		},
+		{
+			"name": "Transactions",
+			"item": [
+				{
+					"name": "List Transactions",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response is an array\", function () {",
+									"    pm.response.to.be.json;",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.be.an('array');",
+									"});",
+									"",
+									"// Guardar el primer transaction_id si existe",
+									"if (pm.response.json().length > 0) {",
+									"    var firstTx = pm.response.json()[0];",
+									"    pm.collectionVariables.set(\"transaction_id\", firstTx.id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/transactions?limit=50&offset=0",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"transactions"
+							],
+							"query": [
+								{
+									"key": "limit",
+									"value": "50",
+									"description": "Número máximo de transacciones a retornar"
+								},
+								{
+									"key": "offset",
+									"value": "0",
+									"description": "Número de transacciones a saltar (paginación)"
+								}
+							]
+						},
+						"description": "Lista todas las transacciones, ordenadas por `created_at` descendente.\n\n**Query Parameters:**\n- `limit` (opcional, default: 50): Número máximo de transacciones\n- `offset` (opcional, default: 0): Offset para paginación\n\n**Respuesta:** Array de objetos `Transaction`"
+					},
+					"response": []
+				},
+				{
+					"name": "Create Transaction",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"// Generar UUID para idempotency key si no existe",
+									"if (!pm.collectionVariables.get(\"idempotency_key\")) {",
+									"    pm.collectionVariables.set(\"idempotency_key\", pm.variables.replaceIn('{{$randomUUID}}'));",
+									"}",
+									"",
+									"// Generar user_id si no existe",
+									"if (!pm.collectionVariables.get(\"user_id\")) {",
+									"    pm.collectionVariables.set(\"user_id\", pm.variables.replaceIn('{{$randomUUID}}'));",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 201\", function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"",
+									"pm.test(\"Response has transaction fields\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('id');",
+									"    pm.expect(jsonData).to.have.property('user_id');",
+									"    pm.expect(jsonData).to.have.property('monto');",
+									"    pm.expect(jsonData).to.have.property('tipo');",
+									"    pm.expect(jsonData).to.have.property('status');",
+									"    pm.expect(jsonData.status).to.eql('pendiente');",
+									"});",
+									"",
+									"// Guardar transaction_id para uso posterior",
+									"var jsonData = pm.response.json();",
+									"pm.collectionVariables.set(\"transaction_id\", jsonData.id);",
+									"",
+									"// Guardar transaction_id del header si existe",
+									"var txIdHeader = pm.response.headers.get('X-Transaction-Id');",
+									"if (txIdHeader) {",
+									"    pm.collectionVariables.set(\"transaction_id\", txIdHeader);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "X-Idempotency-Key",
+								"value": "{{idempotency_key}}",
+								"description": "Clave de idempotencia (opcional). Si se envía la misma clave, retorna la transacción existente."
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"user_id\": \"{{user_id}}\",\n  \"monto\": \"100.50\",\n  \"tipo\": \"ingreso\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/transactions/create",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"transactions",
+								"create"
+							]
+						},
+						"description": "Crea una nueva transacción. Soporta idempotencia mediante el header `X-Idempotency-Key`.\n\n**Headers:**\n- `X-Idempotency-Key` (opcional): Si se envía la misma clave en múltiples requests, retorna la transacción existente sin crear duplicados.\n\n**Body:**\n- `user_id` (UUID, requerido): ID del usuario\n- `monto` (Decimal > 0, requerido): Monto de la transacción\n- `tipo` (enum, requerido): `\"ingreso\"` o `\"egreso\"`\n\n**Respuesta:** Objeto `Transaction` con status `pendiente`\n\n**Headers de respuesta:**\n- `X-Transaction-Id`: ID de la transacción creada\n- `X-Idempotency-Key`: Clave de idempotencia (si se envió)"
+					},
+					"response": []
+				},
+				{
+					"name": "Create Transaction (Egreso)",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"// Generar nueva idempotency key para este request",
+									"pm.collectionVariables.set(\"idempotency_key_egreso\", pm.variables.replaceIn('{{$randomUUID}}'));"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 201\", function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"",
+									"pm.test(\"Transaction type is egreso\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.tipo).to.eql('egreso');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "X-Idempotency-Key",
+								"value": "{{idempotency_key_egreso}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"user_id\": \"{{user_id}}\",\n  \"monto\": \"75.25\",\n  \"tipo\": \"egreso\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/transactions/create",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"transactions",
+								"create"
+							]
+						},
+						"description": "Ejemplo de creación de transacción de tipo `egreso`."
+					},
+					"response": []
+				},
+				{
+					"name": "Change Transaction Status",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Status was updated\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('status');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"status\": \"procesado\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/transactions/{{transaction_id}}/status",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"transactions",
+								"{{transaction_id}}",
+								"status"
+							]
+						},
+						"description": "Cambia el estado de una transacción existente.\n\n**Path Parameters:**\n- `transaction_id` (UUID, requerido): ID de la transacción\n\n**Body:**\n- `status` (enum, requerido): Nuevo estado. Valores posibles:\n  - `\"pendiente\"`\n  - `\"procesado\"`\n  - `\"fallido\"`\n  - `\"cancelado\"`\n\n**Respuesta:** Objeto `Transaction` actualizado\n\n**Nota:** Requiere que `transaction_id` esté configurado en las variables de la colección (se establece automáticamente al crear una transacción)."
+					},
+					"response": []
+				},
+				{
+					"name": "Async Process Transaction",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 202\", function () {",
+									"    pm.response.to.have.status(202);",
+									"});",
+									"",
+									"pm.test(\"Response has job_id\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('job_id');",
+									"    pm.expect(jsonData).to.have.property('transaction_id');",
+									"    pm.expect(jsonData).to.have.property('status');",
+									"    pm.expect(jsonData.status).to.eql('enqueued');",
+									"});",
+									"",
+									"// Guardar job_id",
+									"var jsonData = pm.response.json();",
+									"pm.collectionVariables.set(\"job_id\", jsonData.job_id);"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/transactions/async-process?transaction_id={{transaction_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"transactions",
+								"async-process"
+							],
+							"query": [
+								{
+									"key": "transaction_id",
+									"value": "{{transaction_id}}",
+									"description": "UUID de la transacción a procesar"
+								}
+							]
+						},
+						"description": "Encola una transacción para procesamiento asíncrono.\n\n**Query Parameters:**\n- `transaction_id` (UUID, requerido): ID de la transacción a procesar\n\n**Proceso:**\n1. El worker simula trabajo (sleep)\n2. Actualiza el estado a `\"procesado\"` o `\"fallido\"`\n3. Publica eventos vía WebSocket\n\n**Respuesta (202 Accepted):**\n```json\n{\n  \"job_id\": \"<uuid>\",\n  \"transaction_id\": \"<uuid>\",\n  \"status\": \"enqueued\"\n}\n```\n\n**Nota:** El procesamiento ocurre en background. Los cambios de estado se pueden verificar consultando la transacción o escuchando eventos WebSocket.\n\n**Nota:** Requiere que `transaction_id` esté configurado (se establece automáticamente al crear una transacción)."
+					},
+					"response": []
+				}
+			],
+			"description": "Endpoints para gestión de transacciones:\n- Crear transacciones (con idempotencia)\n- Listar transacciones\n- Cambiar estado\n- Procesamiento asíncrono"
+		},
+		{
+			"name": "Assistant",
+			"item": [
+				{
+					"name": "Summarize Text",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 201\", function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"",
+									"pm.test(\"Response has summary fields\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('id');",
+									"    pm.expect(jsonData).to.have.property('text');",
+									"    pm.expect(jsonData).to.have.property('summary');",
+									"    pm.expect(jsonData).to.have.property('created_at');",
+									"});",
+									"",
+									"// Guardar summary_id",
+									"var jsonData = pm.response.json();",
+									"pm.collectionVariables.set(\"summary_id\", jsonData.id);"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"text\": \"Python es un lenguaje de programación de alto nivel, interpretado y de propósito general. Fue creado por Guido van Rossum y fue lanzado por primera vez en 1991. Su filosofía de diseño enfatiza la legibilidad del código, notablemente mediante el uso de una indentación significativa. Python soporta múltiples paradigmas de programación, incluyendo programación orientada a objetos, imperativa, funcional y procedural.\",\n  \"model\": \"gpt-3.5-turbo\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/assistant/summarize",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"assistant",
+								"summarize"
+							]
+						},
+						"description": "Resume un texto usando OpenAI (o stub en modo de pruebas).\n\n**Body:**\n- `text` (string, requerido, minLength: 1): Texto a resumir\n- `model` (string, opcional): Modelo de OpenAI a usar (ej: `\"gpt-3.5-turbo\"`, `\"gpt-4\"`). Si no se especifica, usa el default del servicio.\n\n**Proceso:**\n1. Llama al cliente OpenAI\n2. Persiste el resumen en el repositorio\n3. Registra eventos de dominio\n\n**Respuesta (201 Created):**\n```json\n{\n  \"id\": \"<uuid>\",\n  \"text\": \"<texto original>\",\n  \"summary\": \"<resumen generado>\",\n  \"created_at\": \"<timestamp>\",\n  \"model\": \"<modelo usado>\",\n  \"request_id\": \"<correlation id>\"\n}\n```\n\n**Errores posibles:**\n- `429`: Quota de OpenAI excedida\n- `502`: Error en la API de OpenAI\n\n**Nota:** Requiere `OPENAI_API_KEY` configurada en el backend. En modo stub (default), retorna un resumen simulado."
+					},
+					"response": []
+				},
+				{
+					"name": "Summarize Text (Simple)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 201\", function () {",
+									"    pm.response.to.have.status(201);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"text\": \"FastAPI es un framework web moderno y rápido para construir APIs con Python basado en estándares modernos.\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/assistant/summarize",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"assistant",
+								"summarize"
+							]
+						},
+						"description": "Ejemplo simplificado sin especificar modelo (usa el default del servicio)."
+					},
+					"response": []
+				}
+			],
+			"description": "Endpoints para resumen de texto usando OpenAI"
+		},
+		{
+			"name": "RPA",
+			"item": [
+				{
+					"name": "Wikipedia Summarize",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response has RPA fields\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('search_term');",
+									"    pm.expect(jsonData).to.have.property('wikipedia_title');",
+									"    pm.expect(jsonData).to.have.property('wikipedia_url');",
+									"    pm.expect(jsonData).to.have.property('original_paragraph');",
+									"    pm.expect(jsonData).to.have.property('summary');",
+									"    pm.expect(jsonData).to.have.property('summary_id');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"search_term\": \"Python programming language\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/rpa/wikipedia-summarize",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"rpa",
+								"wikipedia-summarize"
+							]
+						},
+						"description": "Ejecuta el bot RPA de Wikipedia que busca, extrae y resume contenido.\n\n**Proceso:**\n1. Busca el término en Wikipedia\n2. Extrae el primer párrafo significativo\n3. Resume el contenido usando OpenAI\n\n**Body:**\n- `search_term` (string, requerido, minLength: 1, maxLength: 200): Término a buscar en Wikipedia\n\n**Respuesta (200 OK):**\n```json\n{\n  \"search_term\": \"Python programming language\",\n  \"wikipedia_title\": \"Python (programming language)\",\n  \"wikipedia_url\": \"https://en.wikipedia.org/wiki/Python_(programming_language)\",\n  \"original_paragraph\": \"<primer párrafo extraído>\",\n  \"summary\": \"<resumen generado por OpenAI>\",\n  \"summary_id\": \"<uuid del resumen guardado>\"\n}\n```\n\n**Errores posibles:**\n- `429`: Quota de OpenAI excedida\n- `500`: Error en el proceso RPA (p. ej., término no encontrado en Wikipedia)\n\n**Nota:** Este endpoint internamente llama a `/assistant/summarize` para generar el resumen."
+					},
+					"response": []
+				},
+				{
+					"name": "Wikipedia Summarize (Spanish)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"search_term\": \"FastAPI\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/rpa/wikipedia-summarize",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"rpa",
+								"wikipedia-summarize"
+							]
+						},
+						"description": "Ejemplo de búsqueda de un término en español/inglés."
+					},
+					"response": []
+				}
+			],
+			"description": "Endpoints para automatización RPA (Robotic Process Automation)\n\nEl bot de Wikipedia busca términos, extrae contenido y genera resúmenes automáticamente."
+		},
+		{
+			"name": "Logs",
+			"item": [
+				{
+					"name": "List Logs",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response is an array\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.be.an('array');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/logs?limit=100",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"logs"
+							],
+							"query": [
+								{
+									"key": "limit",
+									"value": "100",
+									"description": "Número máximo de logs a retornar (1-500)"
+								}
+							]
+						},
+						"description": "Obtiene las entradas de log más recientes, ordenadas de más nuevo a más antiguo.\n\n**Query Parameters:**\n- `limit` (opcional, default: 100, min: 1, max: 500): Número máximo de logs a retornar\n\n**Respuesta:** Array de objetos de log con información de eventos del sistema:\n```json\n[\n  {\n    \"event_type\": \"transaction.created\",\n    \"service\": \"api\",\n    \"request_id\": \"<uuid>\",\n    \"transaction_id\": \"<uuid>\",\n    \"timestamp\": \"<iso datetime>\",\n    ...\n  }\n]\n```\n\n**Nota:** Los logs se almacenan en memoria y se reinician al reiniciar el servidor."
+					},
+					"response": []
+				},
+				{
+					"name": "List Logs Grouped",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response is an object\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.be.an('object');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/logs/grouped?limit=50",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"logs",
+								"grouped"
+							],
+							"query": [
+								{
+									"key": "limit",
+									"value": "50",
+									"description": "Número máximo de grupos (request_ids) a retornar (1-200)"
+								}
+							]
+						},
+						"description": "Obtiene las entradas de log agrupadas por `correlation_id` (request_id).\n\n**Query Parameters:**\n- `limit` (opcional, default: 50, min: 1, max: 200): Número máximo de grupos (request_ids) a retornar\n\n**Respuesta:** Objeto donde las claves son `request_id` y los valores son arrays de eventos en orden cronológico:\n```json\n{\n  \"<request_id_1>\": [\n    { \"event_type\": \"...\", \"timestamp\": \"...\", ... },\n    { \"event_type\": \"...\", \"timestamp\": \"...\", ... }\n  ],\n  \"<request_id_2>\": [\n    ...\n  ]\n}\n```\n\nÚtil para ver todos los eventos relacionados con un request específico."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Transaction Logs",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response is an array\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.be.an('array');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/logs/transaction/{{transaction_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"logs",
+								"transaction",
+								"{{transaction_id}}"
+							]
+						},
+						"description": "Obtiene todas las entradas de log para una transacción específica.\n\n**Path Parameters:**\n- `transaction_id` (string, requerido): ID de la transacción\n\n**Respuesta:** Array de objetos de log relacionados con la transacción.\n\n**Nota:** Requiere que `transaction_id` esté configurado en las variables de la colección."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Request Logs",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response is an array\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.be.an('array');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/logs/request/{{request_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"logs",
+								"request",
+								"{{request_id}}"
+							]
+						},
+						"description": "Obtiene todas las entradas de log para un request/correlation específico.\n\n**Path Parameters:**\n- `request_id` (string, requerido): ID del request (correlation ID)\n\n**Respuesta:** Array de objetos de log relacionados con el request.\n\n**Nota:** El `request_id` se genera automáticamente por el middleware de correlation. Puedes obtenerlo de los headers de respuesta (`X-Request-Id`) o de los logs."
+					},
+					"response": []
+				}
+			],
+			"description": "Endpoints para visualización de logs y eventos del sistema\n\nProporciona acceso de solo lectura al log de eventos en memoria para el visor de logs del frontend."
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"// Script global de pre-request",
+					"// Genera request_id si no existe",
+					"if (!pm.collectionVariables.get(\"request_id\")) {",
+					"    pm.collectionVariables.set(\"request_id\", pm.variables.replaceIn('{{$randomUUID}}'));",
+					"}"
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"// Tests globales",
+					"// Verificar que la respuesta tiene tiempo de respuesta razonable",
+					"pm.test(\"Response time is less than 5000ms\", function () {",
+					"    pm.expect(pm.response.responseTime).to.be.below(5000);",
+					"});"
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8000",
+			"type": "string"
+		},
+		{
+			"key": "user_id",
+			"value": "",
+			"type": "string",
+			"description": "UUID de usuario de ejemplo (se genera automáticamente)"
+		},
+		{
+			"key": "transaction_id",
+			"value": "",
+			"type": "string",
+			"description": "UUID de transacción (se establece automáticamente al crear una)"
+		},
+		{
+			"key": "summary_id",
+			"value": "",
+			"type": "string",
+			"description": "UUID de resumen (se establece automáticamente al crear uno)"
+		},
+		{
+			"key": "job_id",
+			"value": "",
+			"type": "string",
+			"description": "UUID de job de procesamiento async"
+		},
+		{
+			"key": "idempotency_key",
+			"value": "",
+			"type": "string",
+			"description": "Clave de idempotencia para crear transacciones"
+		},
+		{
+			"key": "request_id",
+			"value": "",
+			"type": "string",
+			"description": "UUID para correlation/trazabilidad (opcional)"
+		}
+	]
+}
+
+
+

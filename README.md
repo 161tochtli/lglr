@@ -173,6 +173,60 @@ Una vez corriendo el backend:
 
 ---
 
+## Colecciones Postman/Insomnia
+
+El proyecto incluye colecciones completas para probar la API:
+
+| Archivo | Descripción |
+|---------|-------------|
+| **lglr_API.postman_collection.json** | Colección Postman con todos los endpoints, ejemplos, tests y scripts |
+| **lglr_API.insomnia_collection.json** | Colección Insomnia con todos los endpoints y ejemplos |
+
+### Características de las colecciones:
+
+✅ **Todos los endpoints incluidos:**
+- Health Check
+- Transactions (CRUD, idempotencia, async processing)
+- Assistant/Summarize (OpenAI)
+- RPA (Wikipedia bot)
+- Logs (visualización de eventos)
+
+✅ **Variables de entorno preconfiguradas:**
+- `base_url`: http://localhost:8000
+- `user_id`, `transaction_id`, `summary_id`, etc. (se generan automáticamente)
+
+✅ **Ejemplos de requests:**
+- Payloads de ejemplo para cada endpoint
+- Múltiples variantes (ingreso/egreso, diferentes modelos, etc.)
+
+✅ **Tests automáticos:**
+- Validación de status codes
+- Verificación de estructura de respuestas
+- Tests de Postman/Insomnia incluidos
+
+✅ **Documentación:**
+- Descripción detallada de cada endpoint
+- Parámetros explicados
+- Ejemplos de respuestas
+
+### Uso:
+
+**Postman:**
+1. Abrir Postman
+2. File → Import
+3. Seleccionar `lglr_API.postman_collection.json`
+4. Configurar variables si es necesario (default: `base_url = http://localhost:8000`)
+
+**Insomnia:**
+1. Abrir Insomnia
+2. Application → Preferences → Data → Import Data
+3. Seleccionar `lglr_API.insomnia_collection.json`
+4. Configurar variables en el environment si es necesario
+
+**Nota:** Las variables como `transaction_id` se establecen automáticamente al crear transacciones, permitiendo ejecutar los requests en secuencia.
+
+---
+
 ## Testing
 
 ```bash
