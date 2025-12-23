@@ -6,7 +6,7 @@
 
 ```bash
 # 1. Clonar y configurar
-> git clone <repo> && cd lglr
+> git clone git@github.com:161tochtli/lglr.git && cd lglr
 > cp backend/.env.example backend/.env
 
 # 2. Levantar todo el stack
