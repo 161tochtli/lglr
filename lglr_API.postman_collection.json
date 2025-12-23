@@ -167,9 +167,9 @@
 								"value": "application/json"
 							},
 							{
-								"key": "X-Idempotency-Key",
+								"key": "Idempotency-Key",
 								"value": "{{idempotency_key}}",
-								"description": "Clave de idempotencia (opcional). Si se envía la misma clave, retorna la transacción existente."
+								"description": "Clave de idempotencia (requerida en producción). Generada automáticamente por el script pre-request. Si se envía la misma clave, retorna la transacción existente."
 							}
 						],
 						"body": {
@@ -191,7 +191,7 @@
 								"create"
 							]
 						},
-						"description": "Crea una nueva transacción. Soporta idempotencia mediante el header `X-Idempotency-Key`.\n\n**Headers:**\n- `X-Idempotency-Key` (opcional): Si se envía la misma clave en múltiples requests, retorna la transacción existente sin crear duplicados.\n\n**Body:**\n- `user_id` (UUID, requerido): ID del usuario\n- `monto` (Decimal > 0, requerido): Monto de la transacción\n- `tipo` (enum, requerido): `\"ingreso\"` o `\"egreso\"`\n\n**Respuesta:** Objeto `Transaction` con status `pendiente`\n\n**Headers de respuesta:**\n- `X-Transaction-Id`: ID de la transacción creada\n- `X-Idempotency-Key`: Clave de idempotencia (si se envió)"
+						"description": "Crea una nueva transacción. Soporta idempotencia mediante el header `Idempotency-Key`.\n\n**Headers:**\n- `Idempotency-Key` (requerido en producción, opcional en desarrollo): Clave única generada por el cliente. Si se envía la misma clave en múltiples requests, retorna la transacción existente sin crear duplicados.\n  - En producción: **Requerido** (por defecto)\n  - En desarrollo: Opcional si se configura `REQUIRE_IDEMPOTENCY_KEY=false`\n\n**Body:**\n- `user_id` (UUID, requerido): ID del usuario\n- `monto` (Decimal > 0, requerido): Monto de la transacción\n- `tipo` (enum, requerido): `\"ingreso\"` o `\"egreso\"`\n\n**Respuesta:** Objeto `Transaction` con status `pendiente`\n\n**Headers de respuesta:**\n- `X-Transaction-Id`: ID de la transacción creada\n- `Idempotency-Key`: Clave de idempotencia (si se envió)\n\n**Nota:** El frontend genera automáticamente la idempotency key. Para APIs externas, el cliente debe generar un UUID único para cada operación."
 					},
 					"response": []
 				},
@@ -233,7 +233,7 @@
 								"value": "application/json"
 							},
 							{
-								"key": "X-Idempotency-Key",
+								"key": "Idempotency-Key",
 								"value": "{{idempotency_key_egreso}}"
 							}
 						],

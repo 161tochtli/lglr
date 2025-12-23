@@ -173,6 +173,54 @@ Una vez corriendo el backend:
 
 ---
 
+## Idempotency Key
+
+La API implementa **idempotency keys** siguiendo el patrón estándar de APIs REST para prevenir duplicados en operaciones financieras.
+
+### Comportamiento
+
+- **Producción (por defecto)**: La idempotency key es **requerida** en `POST /transactions/create`
+- **Desarrollo**: Puede ser opcional configurando `REQUIRE_IDEMPOTENCY_KEY=false`
+
+### Configuración
+
+Agrega a `backend/.env`:
+
+```bash
+# Requerir idempotency key (producción - por defecto)
+REQUIRE_IDEMPOTENCY_KEY=true
+
+# O hacerla opcional (desarrollo)
+REQUIRE_IDEMPOTENCY_KEY=false
+```
+
+### Uso
+
+**Frontend (automático):**
+- El frontend genera automáticamente una idempotency key única para cada request
+- No requiere configuración adicional
+
+**API externa (manual):**
+- El cliente debe generar un UUID único para cada operación
+- Enviar en el header `Idempotency-Key`
+- Si se reenvía la misma key, el servidor retorna la transacción existente
+
+**Ejemplo:**
+```bash
+curl -X POST http://localhost:8000/transactions/create \
+  -H "Content-Type: application/json" \
+  -H "Idempotency-Key: $(uuidgen)" \
+  -d '{"user_id": "...", "monto": "100.50", "tipo": "ingreso"}'
+```
+
+### Beneficios
+
+✅ **Previene duplicados** por retries automáticos o doble-clicks  
+✅ **Seguridad financiera** en operaciones críticas  
+✅ **Patrón estándar** de la industria (Stripe, PayPal, etc.)
+
+---
+
 ## Colecciones Postman/Insomnia
 
 El proyecto incluye colecciones completas para probar la API:
