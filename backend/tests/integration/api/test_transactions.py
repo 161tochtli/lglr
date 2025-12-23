@@ -12,11 +12,13 @@ from __future__ import annotations
 
 import ast
 import logging
+import os
 from uuid import uuid4
 
 import pytest
 
 from app.domain.correlation import IDEMPOTENCY_KEY_HEADER, TRANSACTION_ID_HEADER
+from app.settings import get_settings
 
 
 def _event_dicts(caplog) -> list[dict]:
@@ -41,14 +43,21 @@ def _event_dicts(caplog) -> list[dict]:
 # ---------------------------------------------------------------------------
 
 
-def test_create_transaction_sets_headers_and_logs_event(client, caplog) -> None:  # type: ignore[no-untyped-def]
+def test_create_transaction_sets_headers_and_logs_event(client, caplog, monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    """Test that transaction creation works with idempotency key."""
     caplog.set_level(logging.INFO)
+    # Ensure idempotency key is required (default behavior)
+    monkeypatch.setenv("REQUIRE_IDEMPOTENCY_KEY", "true")
+    get_settings.cache_clear()  # Clear cache to reload settings
     user_id = str(uuid4())
 
     resp = client.post(
         "/transactions/create",
         json={"user_id": user_id, "monto": "10.50", "tipo": "ingreso"},
-        headers={"X-Request-Id": "req-123"},
+        headers={
+            "X-Request-Id": "req-123",
+            IDEMPOTENCY_KEY_HEADER: str(uuid4()),
+        },
     )
 
     assert resp.status_code == 201
@@ -102,8 +111,27 @@ def test_create_transaction_is_idempotent(client, caplog) -> None:  # type: igno
     assert created_count == 1
 
 
-def test_idempotency_key_is_optional(client) -> None:  # type: ignore[no-untyped-def]
-    """Creating transactions without idempotency key should work (but creates new tx each time)."""
+def test_idempotency_key_is_required_by_default(client, monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    """Creating transactions without idempotency key should fail when required (default)."""
+    # Ensure idempotency key is required (default behavior)
+    monkeypatch.setenv("REQUIRE_IDEMPOTENCY_KEY", "true")
+    get_settings.cache_clear()  # Clear cache to reload settings
+    user_id = str(uuid4())
+
+    resp = client.post(
+        "/transactions/create",
+        json={"user_id": user_id, "monto": "10.00", "tipo": "ingreso"},
+    )
+
+    assert resp.status_code == 400
+    assert "idempotency" in resp.json()["detail"].lower()
+
+
+def test_idempotency_key_is_optional_in_development(client, monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    """Creating transactions without idempotency key should work when requirement is disabled."""
+    # Disable idempotency key requirement for development
+    monkeypatch.setenv("REQUIRE_IDEMPOTENCY_KEY", "false")
+    get_settings.cache_clear()  # Clear cache to reload settings
     user_id = str(uuid4())
 
     resp1 = client.post(
@@ -125,8 +153,11 @@ def test_idempotency_key_is_optional(client) -> None:  # type: ignore[no-untyped
 # ---------------------------------------------------------------------------
 
 
-def test_change_transaction_status_logs_status_changed(client, caplog) -> None:  # type: ignore[no-untyped-def]
+def test_change_transaction_status_logs_status_changed(client, caplog, monkeypatch) -> None:  # type: ignore[no-untyped-def]
     caplog.set_level(logging.INFO)
+    # Disable idempotency key requirement for this test
+    monkeypatch.setenv("REQUIRE_IDEMPOTENCY_KEY", "false")
+    get_settings.cache_clear()  # Clear cache to reload settings
     user_id = str(uuid4())
 
     resp = client.post(
@@ -176,8 +207,11 @@ def test_change_status_rejects_invalid_status(client) -> None:  # type: ignore[n
 
 
 @pytest.mark.parametrize("monto", ["0", "-1", "-100.50"])
-def test_create_transaction_rejects_non_positive_monto(client, monto: str) -> None:  # type: ignore[no-untyped-def]
+def test_create_transaction_rejects_non_positive_monto(client, monto: str, monkeypatch) -> None:  # type: ignore[no-untyped-def]
     """Validation: monto must be > 0."""
+    # Disable idempotency key requirement for this test
+    monkeypatch.setenv("REQUIRE_IDEMPOTENCY_KEY", "false")
+    get_settings.cache_clear()  # Clear cache to reload settings
     resp = client.post(
         "/transactions/create",
         json={"user_id": str(uuid4()), "monto": monto, "tipo": "ingreso"},
@@ -185,8 +219,11 @@ def test_create_transaction_rejects_non_positive_monto(client, monto: str) -> No
     assert resp.status_code == 422  # Unprocessable Entity
 
 
-def test_create_transaction_rejects_invalid_tipo(client) -> None:  # type: ignore[no-untyped-def]
+def test_create_transaction_rejects_invalid_tipo(client, monkeypatch) -> None:  # type: ignore[no-untyped-def]
     """Validation: tipo must be 'ingreso' or 'egreso'."""
+    # Disable idempotency key requirement for this test
+    monkeypatch.setenv("REQUIRE_IDEMPOTENCY_KEY", "false")
+    get_settings.cache_clear()  # Clear cache to reload settings
     resp = client.post(
         "/transactions/create",
         json={"user_id": str(uuid4()), "monto": "10.00", "tipo": "invalid_type"},
@@ -194,8 +231,11 @@ def test_create_transaction_rejects_invalid_tipo(client) -> None:  # type: ignor
     assert resp.status_code == 422
 
 
-def test_create_transaction_rejects_invalid_user_id(client) -> None:  # type: ignore[no-untyped-def]
+def test_create_transaction_rejects_invalid_user_id(client, monkeypatch) -> None:  # type: ignore[no-untyped-def]
     """Validation: user_id must be a valid UUID."""
+    # Disable idempotency key requirement for this test
+    monkeypatch.setenv("REQUIRE_IDEMPOTENCY_KEY", "false")
+    get_settings.cache_clear()  # Clear cache to reload settings
     resp = client.post(
         "/transactions/create",
         json={"user_id": "not-a-uuid", "monto": "10.00", "tipo": "ingreso"},
@@ -203,8 +243,11 @@ def test_create_transaction_rejects_invalid_user_id(client) -> None:  # type: ig
     assert resp.status_code == 422
 
 
-def test_create_transaction_rejects_missing_fields(client) -> None:  # type: ignore[no-untyped-def]
+def test_create_transaction_rejects_missing_fields(client, monkeypatch) -> None:  # type: ignore[no-untyped-def]
     """Validation: all required fields must be present."""
+    # Disable idempotency key requirement for this test
+    monkeypatch.setenv("REQUIRE_IDEMPOTENCY_KEY", "false")
+    get_settings.cache_clear()  # Clear cache to reload settings
     # Missing monto
     resp = client.post(
         "/transactions/create",
