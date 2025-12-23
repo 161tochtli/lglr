@@ -1,0 +1,32 @@
+docs/
+agents/
+
+# Python
+.venv/
+**/.venv/
+__pycache__/
+**/__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+**/*.egg-info/
+.eggs/
+dist/
+build/
+
+# Node (frontend)
+node_modules/
+.next/
+dist/
+
+# IDE
+.idea/
+
+# Env files (keep .env.example)
+.env
+.env.local
+.env.*.local
+
+# OS
+.DS_Store
+Thumbs.db
