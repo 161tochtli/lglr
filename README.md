@@ -6,7 +6,8 @@
 
 ```bash
 # 1. Clonar y configurar
-> git clone git@github.com:161tochtli/lglr.git && cd lglr
+> git clone git@github.com:161tochtli/lglr.git
+> cd lglr
 > cp backend/.env.example backend/.env
 
 # 2. Levantar todo el stack
@@ -23,7 +24,8 @@
 
 ```bash
 # 1. Clonar
-> git clone <repo> && cd legalario-prueba-tecnica
+> git clone git@github.com:161tochtli/lglr.git
+> cd lglr
 
 # 2. Copiar el archivo backend/.env.example a backend/.env para configurar variables de entorno (p. ej. para usar OpenAI API) 
 > cp backend/.env.example backend/.env
