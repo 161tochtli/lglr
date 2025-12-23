@@ -14,6 +14,7 @@ from app.domain.models import NewTransaction, Transaction, TransactionStatusChan
 from app.infra.event_log import get_event_log
 from app.infra.queue import QueueClient
 from app.repos.ports import IdempotencyStore, TransactionRepo
+from app.settings import get_settings
 
 router = APIRouter(tags=["transactions"])
 logger = structlog.get_logger(__name__)
@@ -45,8 +46,17 @@ def create_transaction_endpoint(
     body: NewTransaction,
     idempotency_key: str | None = Header(default=None, alias=IDEMPOTENCY_KEY_HEADER),
 ) -> Transaction:
+    settings = get_settings()
     tx_repo, idem = _repos(request)
 
+    # Validate idempotency key requirement based on environment
+    if settings.require_idempotency_key and not idempotency_key:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Idempotency key is required. Please provide '{IDEMPOTENCY_KEY_HEADER}' header.",
+        )
+
+    # Check idempotency if key is provided (standard pattern: client sends the key)
     if idempotency_key:
         existing = idem.get(idempotency_key)
         if isinstance(existing, str):
@@ -59,6 +69,7 @@ def create_transaction_endpoint(
     tx = create_transaction(user_id=body.user_id, monto=body.monto, tipo=body.tipo)
     tx_repo.add(tx)
 
+    # Store idempotency key mapping only if provided by client
     if idempotency_key:
         idem.put(idempotency_key, str(tx.id))
         response.headers[IDEMPOTENCY_KEY_HEADER] = idempotency_key
@@ -68,11 +79,14 @@ def create_transaction_endpoint(
     # Bind correlation ids for consistent logging.
     request_id = correlation_id.get() or "-"
     try:
-        bind_contextvars(
-            transaction_id=str(tx.id),
-            idempotency_key=idempotency_key,
-            request_id=request_id,
-        )
+        context_vars = {
+            "transaction_id": str(tx.id),
+            "request_id": request_id,
+        }
+        # Only include idempotency_key if provided by client (standard pattern)
+        if idempotency_key:
+            context_vars["idempotency_key"] = idempotency_key
+        bind_contextvars(**context_vars)
         evt = events.transaction_created(tx)
         logger.info(evt.name, **evt.payload)
 

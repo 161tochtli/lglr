@@ -28,7 +28,7 @@ test = [
 
 # Playwright only needed for e2e tests in devcontainer/CI (not for RPA)
 e2e = [
-  "playwright>=1.40",
+  "playwright>=1.50",
   "pytest-playwright>=0.5",
 ]
 

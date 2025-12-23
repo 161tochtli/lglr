@@ -29,6 +29,10 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
     log_json: bool = False
 
+    # Idempotency
+    require_idempotency_key: bool = True  # Required by default (production-safe)
+    # Set to False in development for convenience: REQUIRE_IDEMPOTENCY_KEY=false
+
     @property
     def persistence_mode(self) -> Literal["memory", "sqlite", "postgres"]:
         """Infer persistence mode from DATABASE_URL."""
