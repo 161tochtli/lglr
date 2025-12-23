@@ -1,0 +1,115 @@
+# docker-compose.yml — Levanta todo el stack (backend + worker + db + redis)
+# Uso: docker compose -f infra/docker-compose.yml up --build
+
+services:
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Frontend (React + Vite)
+  # ═══════════════════════════════════════════════════════════════════════════
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+    ports:
+      - "5173:5173"
+    volumes:
+      - ../frontend/src:/app/src:cached
+      - ../frontend/public:/app/public:cached
+    environment:
+      - VITE_API_URL=http://api:8000
+    depends_on:
+      - api
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Backend API (FastAPI) - hot-reload habilitado con volumen
+  # ═══════════════════════════════════════════════════════════════════════════
+  api:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    # Single process for WebSocket events to work (no multiprocess isolation)
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+    ports:
+      - "8000:8000"
+    volumes:
+      # Hot-reload: monta el código fuente para que cambios se reflejen sin rebuild
+      - ../backend/app:/app/app:cached
+    env_file:
+      - ../backend/.env
+    environment:
+      # Estas tienen prioridad sobre .env (conexión a containers internos)
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/legali
+      - REDIS_URL=redis://redis:6379/0
+      - WEB_CONCURRENCY=1
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Worker (procesa jobs async de la cola)
+  # ═══════════════════════════════════════════════════════════════════════════
+  worker:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    command: ["python", "-m", "app.worker.main"]
+    volumes:
+      - ../backend/app:/app/app:cached
+    env_file:
+      - ../backend/.env
+    environment:
+      # Estas tienen prioridad sobre .env (conexión a containers internos)
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/legali
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # PostgreSQL
+  # ═══════════════════════════════════════════════════════════════════════════
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: legali
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Redis (cola + pub/sub para WebSocket broadcast)
+  # ═══════════════════════════════════════════════════════════════════════════
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres-data:
+  redis-data:
+
