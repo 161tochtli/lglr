@@ -1,0 +1,533 @@
+{
+	"_type": "export",
+	"__export_format": 4,
+	"__export_date": "2024-01-01T00:00:00.000Z",
+	"__export_source": "insomnia.desktop.app:v2023.5.8",
+	"resources": [
+		{
+			"_id": "req_health_check",
+			"parentId": "fld_health",
+			"modified": 1704067200000,
+			"created": 1704067200000,
+			"url": "{{ _.base_url }}/health",
+			"name": "Health Check",
+			"description": "Verifica el estado del servicio API.\n\n**Respuesta esperada:**\n```json\n{\n  \"status\": \"ok\"\n}\n```",
+			"method": "GET",
+			"body": {},
+			"parameters": [],
+			"headers": [],
+			"authentication": {},
+			"metaSortKey": -1704067200000,
+			"isPrivate": false,
+			"settingStoreCookies": true,
+			"settingSendCookies": true,
+			"settingDisableRenderRequestBody": false,
+			"settingEncodeUrl": true,
+			"settingRebuildPath": true,
+			"settingFollowRedirects": "global",
+			"_type": "request"
+		},
+		{
+			"_id": "fld_health",
+			"parentId": "wrk_main",
+			"modified": 1704067200000,
+			"created": 1704067200000,
+			"name": "Health",
+			"description": "Endpoints de health check del servicio",
+			"environment": {},
+			"environmentPropertyOrder": null,
+			"metaSortKey": -1704067200000,
+			"_type": "request_group"
+		},
+		{
+			"_id": "req_list_transactions",
+			"parentId": "fld_transactions",
+			"modified": 1704067200000,
+			"created": 1704067200000,
+			"url": "{{ _.base_url }}/transactions?limit=50&offset=0",
+			"name": "List Transactions",
+			"description": "Lista todas las transacciones, ordenadas por `created_at` descendente.\n\n**Query Parameters:**\n- `limit` (opcional, default: 50): Número máximo de transacciones\n- `offset` (opcional, default: 0): Offset para paginación\n\n**Respuesta:** Array de objetos `Transaction`",
+			"method": "GET",
+			"body": {},
+			"parameters": [
+				{
+					"id": "pair_limit",
+					"name": "limit",
+					"value": "50",
+					"description": "Número máximo de transacciones a retornar"
+				},
+				{
+					"id": "pair_offset",
+					"name": "offset",
+					"value": "0",
+					"description": "Número de transacciones a saltar (paginación)"
+				}
+			],
+			"headers": [],
+			"authentication": {},
+			"metaSortKey": -1704067200001,
+			"isPrivate": false,
+			"settingStoreCookies": true,
+			"settingSendCookies": true,
+			"settingDisableRenderRequestBody": false,
+			"settingEncodeUrl": true,
+			"settingRebuildPath": true,
+			"settingFollowRedirects": "global",
+			"_type": "request"
+		},
+		{
+			"_id": "req_create_transaction",
+			"parentId": "fld_transactions",
+			"modified": 1704067200000,
+			"created": 1704067200000,
+			"url": "{{ _.base_url }}/transactions/create",
+			"name": "Create Transaction",
+			"description": "Crea una nueva transacción. Soporta idempotencia mediante el header `Idempotency-Key`.\n\n**Headers:**\n- `Idempotency-Key` (requerido en producción, opcional en desarrollo): Clave única generada por el cliente. Si se envía la misma clave en múltiples requests, retorna la transacción existente sin crear duplicados.\n  - En producción: **Requerido** (por defecto)\n  - En desarrollo: Opcional si se configura `REQUIRE_IDEMPOTENCY_KEY=false`\n\n**Body:**\n- `user_id` (UUID, requerido): ID del usuario\n- `monto` (Decimal > 0, requerido): Monto de la transacción\n- `tipo` (enum, requerido): `\"ingreso\"` o `\"egreso\"`\n\n**Respuesta:** Objeto `Transaction` con status `pendiente`\n\n**Headers de respuesta:**\n- `X-Transaction-Id`: ID de la transacción creada\n- `Idempotency-Key`: Clave de idempotencia (si se envió)\n\n**Nota:** El frontend genera automáticamente la idempotency key. Para APIs externas, el cliente debe generar un UUID único para cada operación.",
+			"method": "POST",
+			"body": {
+				"mimeType": "application/json",
+				"text": "{\n  \"user_id\": \"{{ _.user_id }}\",\n  \"monto\": \"100.50\",\n  \"tipo\": \"ingreso\"\n}"
+			},
+			"parameters": [],
+			"headers": [
+				{
+					"name": "Content-Type",
+					"value": "application/json"
+				},
+				{
+					"name": "Idempotency-Key",
+					"value": "{{ _.idempotency_key }}",
+					"description": "Clave de idempotencia (requerida en producción). Generada automáticamente. Si se envía la misma clave, retorna la transacción existente."
+				}
+			],
+			"authentication": {},
+			"metaSortKey": -1704067200002,
+			"isPrivate": false,
+			"settingStoreCookies": true,
+			"settingSendCookies": true,
+			"settingDisableRenderRequestBody": false,
+			"settingEncodeUrl": true,
+			"settingRebuildPath": true,
+			"settingFollowRedirects": "global",
+			"_type": "request"
+		},
+		{
+			"_id": "req_create_transaction_egreso",
+			"parentId": "fld_transactions",
+			"modified": 1704067200000,
+			"created": 1704067200000,
+			"url": "{{ _.base_url }}/transactions/create",
+			"name": "Create Transaction (Egreso)",
+			"description": "Ejemplo de creación de transacción de tipo `egreso`.",
+			"method": "POST",
+			"body": {
+				"mimeType": "application/json",
+				"text": "{\n  \"user_id\": \"{{ _.user_id }}\",\n  \"monto\": \"75.25\",\n  \"tipo\": \"egreso\"\n}"
+			},
+			"parameters": [],
+			"headers": [
+				{
+					"name": "Content-Type",
+					"value": "application/json"
+				},
+				{
+					"name": "Idempotency-Key",
+					"value": "{{ _.idempotency_key_egreso }}"
+				}
+			],
+			"authentication": {},
+			"metaSortKey": -1704067200003,
+			"isPrivate": false,
+			"settingStoreCookies": true,
+			"settingSendCookies": true,
+			"settingDisableRenderRequestBody": false,
+			"settingEncodeUrl": true,
+			"settingRebuildPath": true,
+			"settingFollowRedirects": "global",
+			"_type": "request"
+		},
+		{
+			"_id": "req_change_transaction_status",
+			"parentId": "fld_transactions",
+			"modified": 1704067200000,
+			"created": 1704067200000,
+			"url": "{{ _.base_url }}/transactions/{{ _.transaction_id }}/status",
+			"name": "Change Transaction Status",
+			"description": "Cambia el estado de una transacción existente.\n\n**Path Parameters:**\n- `transaction_id` (UUID, requerido): ID de la transacción\n\n**Body:**\n- `status` (enum, requerido): Nuevo estado. Valores posibles:\n  - `\"pendiente\"`\n  - `\"procesado\"`\n  - `\"fallido\"`\n  - `\"cancelado\"`\n\n**Respuesta:** Objeto `Transaction` actualizado\n\n**Nota:** Requiere que `transaction_id` esté configurado en las variables de la colección (se establece automáticamente al crear una transacción).",
+			"method": "PATCH",
+			"body": {
+				"mimeType": "application/json",
+				"text": "{\n  \"status\": \"procesado\"\n}"
+			},
+			"parameters": [],
+			"headers": [
+				{
+					"name": "Content-Type",
+					"value": "application/json"
+				}
+			],
+			"authentication": {},
+			"metaSortKey": -1704067200004,
+			"isPrivate": false,
+			"settingStoreCookies": true,
+			"settingSendCookies": true,
+			"settingDisableRenderRequestBody": false,
+			"settingEncodeUrl": true,
+			"settingRebuildPath": true,
+			"settingFollowRedirects": "global",
+			"_type": "request"
+		},
+		{
+			"_id": "req_async_process_transaction",
+			"parentId": "fld_transactions",
+			"modified": 1704067200000,
+			"created": 1704067200000,
+			"url": "{{ _.base_url }}/transactions/async-process?transaction_id={{ _.transaction_id }}",
+			"name": "Async Process Transaction",
+			"description": "Encola una transacción para procesamiento asíncrono.\n\n**Query Parameters:**\n- `transaction_id` (UUID, requerido): ID de la transacción a procesar\n\n**Proceso:**\n1. El worker simula trabajo (sleep)\n2. Actualiza el estado a `\"procesado\"` o `\"fallido\"`\n3. Publica eventos vía WebSocket\n\n**Respuesta (202 Accepted):**\n```json\n{\n  \"job_id\": \"<uuid>\",\n  \"transaction_id\": \"<uuid>\",\n  \"status\": \"enqueued\"\n}\n```\n\n**Nota:** El procesamiento ocurre en background. Los cambios de estado se pueden verificar consultando la transacción o escuchando eventos WebSocket.\n\n**Nota:** Requiere que `transaction_id` esté configurado (se establece automáticamente al crear una transacción).",
+			"method": "POST",
+			"body": {},
+			"parameters": [
+				{
+					"id": "pair_transaction_id",
+					"name": "transaction_id",
+					"value": "{{ _.transaction_id }}",
+					"description": "UUID de la transacción a procesar"
+				}
+			],
+			"headers": [],
+			"authentication": {},
+			"metaSortKey": -1704067200005,
+			"isPrivate": false,
+			"settingStoreCookies": true,
+			"settingSendCookies": true,
+			"settingDisableRenderRequestBody": false,
+			"settingEncodeUrl": true,
+			"settingRebuildPath": true,
+			"settingFollowRedirects": "global",
+			"_type": "request"
+		},
+		{
+			"_id": "fld_transactions",
+			"parentId": "wrk_main",
+			"modified": 1704067200000,
+			"created": 1704067200000,
+			"name": "Transactions",
+			"description": "Endpoints para gestión de transacciones:\n- Crear transacciones (con idempotencia)\n- Listar transacciones\n- Cambiar estado\n- Procesamiento asíncrono",
+			"environment": {},
+			"environmentPropertyOrder": null,
+			"metaSortKey": -1704067200006,
+			"_type": "request_group"
+		},
+		{
+			"_id": "req_summarize_text",
+			"parentId": "fld_assistant",
+			"modified": 1704067200000,
+			"created": 1704067200000,
+			"url": "{{ _.base_url }}/assistant/summarize",
+			"name": "Summarize Text",
+			"description": "Resume un texto usando OpenAI (o stub en modo de pruebas).\n\n**Body:**\n- `text` (string, requerido, minLength: 1): Texto a resumir\n- `model` (string, opcional): Modelo de OpenAI a usar (ej: `\"gpt-3.5-turbo\"`, `\"gpt-4\"`). Si no se especifica, usa el default del servicio.\n\n**Proceso:**\n1. Llama al cliente OpenAI\n2. Persiste el resumen en el repositorio\n3. Registra eventos de dominio\n\n**Respuesta (201 Created):**\n```json\n{\n  \"id\": \"<uuid>\",\n  \"text\": \"<texto original>\",\n  \"summary\": \"<resumen generado>\",\n  \"created_at\": \"<timestamp>\",\n  \"model\": \"<modelo usado>\",\n  \"request_id\": \"<correlation id>\"\n}\n```\n\n**Errores posibles:**\n- `429`: Quota de OpenAI excedida\n- `502`: Error en la API de OpenAI\n\n**Nota:** Requiere `OPENAI_API_KEY` configurada en el backend. En modo stub (default), retorna un resumen simulado.",
+			"method": "POST",
+			"body": {
+				"mimeType": "application/json",
+				"text": "{\n  \"text\": \"Python es un lenguaje de programación de alto nivel, interpretado y de propósito general. Fue creado por Guido van Rossum y fue lanzado por primera vez en 1991. Su filosofía de diseño enfatiza la legibilidad del código, notablemente mediante el uso de una indentación significativa. Python soporta múltiples paradigmas de programación, incluyendo programación orientada a objetos, imperativa, funcional y procedural.\",\n  \"model\": \"gpt-3.5-turbo\"\n}"
+			},
+			"parameters": [],
+			"headers": [
+				{
+					"name": "Content-Type",
+					"value": "application/json"
+				}
+			],
+			"authentication": {},
+			"metaSortKey": -1704067200007,
+			"isPrivate": false,
+			"settingStoreCookies": true,
+			"settingSendCookies": true,
+			"settingDisableRenderRequestBody": false,
+			"settingEncodeUrl": true,
+			"settingRebuildPath": true,
+			"settingFollowRedirects": "global",
+			"_type": "request"
+		},
+		{
+			"_id": "req_summarize_text_simple",
+			"parentId": "fld_assistant",
+			"modified": 1704067200000,
+			"created": 1704067200000,
+			"url": "{{ _.base_url }}/assistant/summarize",
+			"name": "Summarize Text (Simple)",
+			"description": "Ejemplo simplificado sin especificar modelo (usa el default del servicio).",
+			"method": "POST",
+			"body": {
+				"mimeType": "application/json",
+				"text": "{\n  \"text\": \"FastAPI es un framework web moderno y rápido para construir APIs con Python basado en estándares modernos.\"\n}"
+			},
+			"parameters": [],
+			"headers": [
+				{
+					"name": "Content-Type",
+					"value": "application/json"
+				}
+			],
+			"authentication": {},
+			"metaSortKey": -1704067200008,
+			"isPrivate": false,
+			"settingStoreCookies": true,
+			"settingSendCookies": true,
+			"settingDisableRenderRequestBody": false,
+			"settingEncodeUrl": true,
+			"settingRebuildPath": true,
+			"settingFollowRedirects": "global",
+			"_type": "request"
+		},
+		{
+			"_id": "fld_assistant",
+			"parentId": "wrk_main",
+			"modified": 1704067200000,
+			"created": 1704067200000,
+			"name": "Assistant",
+			"description": "Endpoints para resumen de texto usando OpenAI",
+			"environment": {},
+			"environmentPropertyOrder": null,
+			"metaSortKey": -1704067200009,
+			"_type": "request_group"
+		},
+		{
+			"_id": "req_wikipedia_summarize",
+			"parentId": "fld_rpa",
+			"modified": 1704067200000,
+			"created": 1704067200000,
+			"url": "{{ _.base_url }}/rpa/wikipedia-summarize",
+			"name": "Wikipedia Summarize",
+			"description": "Ejecuta el bot RPA de Wikipedia que busca, extrae y resume contenido.\n\n**Proceso:**\n1. Busca el término en Wikipedia\n2. Extrae el primer párrafo significativo\n3. Resume el contenido usando OpenAI\n\n**Body:**\n- `search_term` (string, requerido, minLength: 1, maxLength: 200): Término a buscar en Wikipedia\n\n**Respuesta (200 OK):**\n```json\n{\n  \"search_term\": \"Python programming language\",\n  \"wikipedia_title\": \"Python (programming language)\",\n  \"wikipedia_url\": \"https://en.wikipedia.org/wiki/Python_(programming_language)\",\n  \"original_paragraph\": \"<primer párrafo extraído>\",\n  \"summary\": \"<resumen generado por OpenAI>\",\n  \"summary_id\": \"<uuid del resumen guardado>\"\n}\n```\n\n**Errores posibles:**\n- `429`: Quota de OpenAI excedida\n- `500`: Error en el proceso RPA (p. ej., término no encontrado en Wikipedia)\n\n**Nota:** Este endpoint internamente llama a `/assistant/summarize` para generar el resumen.",
+			"method": "POST",
+			"body": {
+				"mimeType": "application/json",
+				"text": "{\n  \"search_term\": \"Python programming language\"\n}"
+			},
+			"parameters": [],
+			"headers": [
+				{
+					"name": "Content-Type",
+					"value": "application/json"
+				}
+			],
+			"authentication": {},
+			"metaSortKey": -1704067200010,
+			"isPrivate": false,
+			"settingStoreCookies": true,
+			"settingSendCookies": true,
+			"settingDisableRenderRequestBody": false,
+			"settingEncodeUrl": true,
+			"settingRebuildPath": true,
+			"settingFollowRedirects": "global",
+			"_type": "request"
+		},
+		{
+			"_id": "req_wikipedia_summarize_spanish",
+			"parentId": "fld_rpa",
+			"modified": 1704067200000,
+			"created": 1704067200000,
+			"url": "{{ _.base_url }}/rpa/wikipedia-summarize",
+			"name": "Wikipedia Summarize (Spanish)",
+			"description": "Ejemplo de búsqueda de un término en español/inglés.",
+			"method": "POST",
+			"body": {
+				"mimeType": "application/json",
+				"text": "{\n  \"search_term\": \"FastAPI\"\n}"
+			},
+			"parameters": [],
+			"headers": [
+				{
+					"name": "Content-Type",
+					"value": "application/json"
+				}
+			],
+			"authentication": {},
+			"metaSortKey": -1704067200011,
+			"isPrivate": false,
+			"settingStoreCookies": true,
+			"settingSendCookies": true,
+			"settingDisableRenderRequestBody": false,
+			"settingEncodeUrl": true,
+			"settingRebuildPath": true,
+			"settingFollowRedirects": "global",
+			"_type": "request"
+		},
+		{
+			"_id": "fld_rpa",
+			"parentId": "wrk_main",
+			"modified": 1704067200000,
+			"created": 1704067200000,
+			"name": "RPA",
+			"description": "Endpoints para automatización RPA (Robotic Process Automation)\n\nEl bot de Wikipedia busca términos, extrae contenido y genera resúmenes automáticamente.",
+			"environment": {},
+			"environmentPropertyOrder": null,
+			"metaSortKey": -1704067200012,
+			"_type": "request_group"
+		},
+		{
+			"_id": "req_list_logs",
+			"parentId": "fld_logs",
+			"modified": 1704067200000,
+			"created": 1704067200000,
+			"url": "{{ _.base_url }}/logs?limit=100",
+			"name": "List Logs",
+			"description": "Obtiene las entradas de log más recientes, ordenadas de más nuevo a más antiguo.\n\n**Query Parameters:**\n- `limit` (opcional, default: 100, min: 1, max: 500): Número máximo de logs a retornar\n\n**Respuesta:** Array de objetos de log con información de eventos del sistema:\n```json\n[\n  {\n    \"event_type\": \"transaction.created\",\n    \"service\": \"api\",\n    \"request_id\": \"<uuid>\",\n    \"transaction_id\": \"<uuid>\",\n    \"timestamp\": \"<iso datetime>\",\n    ...\n  }\n]\n```\n\n**Nota:** Los logs se almacenan en memoria y se reinician al reiniciar el servidor.",
+			"method": "GET",
+			"body": {},
+			"parameters": [
+				{
+					"id": "pair_limit",
+					"name": "limit",
+					"value": "100",
+					"description": "Número máximo de logs a retornar (1-500)"
+				}
+			],
+			"headers": [],
+			"authentication": {},
+			"metaSortKey": -1704067200013,
+			"isPrivate": false,
+			"settingStoreCookies": true,
+			"settingSendCookies": true,
+			"settingDisableRenderRequestBody": false,
+			"settingEncodeUrl": true,
+			"settingRebuildPath": true,
+			"settingFollowRedirects": "global",
+			"_type": "request"
+		},
+		{
+			"_id": "req_list_logs_grouped",
+			"parentId": "fld_logs",
+			"modified": 1704067200000,
+			"created": 1704067200000,
+			"url": "{{ _.base_url }}/logs/grouped?limit=50",
+			"name": "List Logs Grouped",
+			"description": "Obtiene las entradas de log agrupadas por `correlation_id` (request_id).\n\n**Query Parameters:**\n- `limit` (opcional, default: 50, min: 1, max: 200): Número máximo de grupos (request_ids) a retornar\n\n**Respuesta:** Objeto donde las claves son `request_id` y los valores son arrays de eventos en orden cronológico:\n```json\n{\n  \"<request_id_1>\": [\n    { \"event_type\": \"...\", \"timestamp\": \"...\", ... },\n    { \"event_type\": \"...\", \"timestamp\": \"...\", ... }\n  ],\n  \"<request_id_2>\": [\n    ...\n  ]\n}\n```\n\nÚtil para ver todos los eventos relacionados con un request específico.",
+			"method": "GET",
+			"body": {},
+			"parameters": [
+				{
+					"id": "pair_limit",
+					"name": "limit",
+					"value": "50",
+					"description": "Número máximo de grupos (request_ids) a retornar (1-200)"
+				}
+			],
+			"headers": [],
+			"authentication": {},
+			"metaSortKey": -1704067200014,
+			"isPrivate": false,
+			"settingStoreCookies": true,
+			"settingSendCookies": true,
+			"settingDisableRenderRequestBody": false,
+			"settingEncodeUrl": true,
+			"settingRebuildPath": true,
+			"settingFollowRedirects": "global",
+			"_type": "request"
+		},
+		{
+			"_id": "req_get_transaction_logs",
+			"parentId": "fld_logs",
+			"modified": 1704067200000,
+			"created": 1704067200000,
+			"url": "{{ _.base_url }}/logs/transaction/{{ _.transaction_id }}",
+			"name": "Get Transaction Logs",
+			"description": "Obtiene todas las entradas de log para una transacción específica.\n\n**Path Parameters:**\n- `transaction_id` (string, requerido): ID de la transacción\n\n**Respuesta:** Array de objetos de log relacionados con la transacción.\n\n**Nota:** Requiere que `transaction_id` esté configurado en las variables de la colección.",
+			"method": "GET",
+			"body": {},
+			"parameters": [],
+			"headers": [],
+			"authentication": {},
+			"metaSortKey": -1704067200015,
+			"isPrivate": false,
+			"settingStoreCookies": true,
+			"settingSendCookies": true,
+			"settingDisableRenderRequestBody": false,
+			"settingEncodeUrl": true,
+			"settingRebuildPath": true,
+			"settingFollowRedirects": "global",
+			"_type": "request"
+		},
+		{
+			"_id": "req_get_request_logs",
+			"parentId": "fld_logs",
+			"modified": 1704067200000,
+			"created": 1704067200000,
+			"url": "{{ _.base_url }}/logs/request/{{ _.request_id }}",
+			"name": "Get Request Logs",
+			"description": "Obtiene todas las entradas de log para un request/correlation específico.\n\n**Path Parameters:**\n- `request_id` (string, requerido): ID del request (correlation ID)\n\n**Respuesta:** Array de objetos de log relacionados con el request.\n\n**Nota:** El `request_id` se genera automáticamente por el middleware de correlation. Puedes obtenerlo de los headers de respuesta (`X-Request-Id`) o de los logs.",
+			"method": "GET",
+			"body": {},
+			"parameters": [],
+			"headers": [],
+			"authentication": {},
+			"metaSortKey": -1704067200016,
+			"isPrivate": false,
+			"settingStoreCookies": true,
+			"settingSendCookies": true,
+			"settingDisableRenderRequestBody": false,
+			"settingEncodeUrl": true,
+			"settingRebuildPath": true,
+			"settingFollowRedirects": "global",
+			"_type": "request"
+		},
+		{
+			"_id": "fld_logs",
+			"parentId": "wrk_main",
+			"modified": 1704067200000,
+			"created": 1704067200000,
+			"name": "Logs",
+			"description": "Endpoints para visualización de logs y eventos del sistema\n\nProporciona acceso de solo lectura al log de eventos en memoria para el visor de logs del frontend.",
+			"environment": {},
+			"environmentPropertyOrder": null,
+			"metaSortKey": -1704067200017,
+			"_type": "request_group"
+		},
+		{
+			"_id": "wrk_main",
+			"parentId": null,
+			"modified": 1704067200000,
+			"created": 1704067200000,
+			"name": "lglr API",
+			"description": "Colección completa de la API lglr - Backend FastAPI\n\n## Endpoints incluidos:\n- **Transactions**: CRUD de transacciones con idempotencia\n- **Assistant**: Resumen de texto con OpenAI\n- **RPA**: Bot de Wikipedia que busca y resume contenido\n- **Logs**: Visualización de eventos y logs del sistema\n- **Health**: Health check del servicio\n\n## Variables de entorno:\n- `base_url`: URL base del API (default: http://localhost:8000)\n- `user_id`: UUID de usuario de ejemplo\n- `transaction_id`: UUID de transacción (se genera dinámicamente)\n- `request_id`: UUID para correlation (opcional)\n\n## Uso:\n1. Importar esta colección en Insomnia\n2. Configurar las variables de entorno si es necesario\n3. Ejecutar los requests en orden sugerido",
+			"scope": "collection",
+			"_type": "workspace"
+		},
+		{
+			"_id": "env_base",
+			"parentId": "wrk_main",
+			"modified": 1704067200000,
+			"created": 1704067200000,
+			"name": "Base Environment",
+			"data": {
+				"base_url": "http://localhost:8000",
+				"user_id": "",
+				"transaction_id": "",
+				"summary_id": "",
+				"job_id": "",
+				"idempotency_key": "",
+				"idempotency_key_egreso": "",
+				"request_id": ""
+			},
+			"dataPropertyOrder": {
+				"&": [
+					"base_url",
+					"user_id",
+					"transaction_id",
+					"summary_id",
+					"job_id",
+					"idempotency_key",
+					"idempotency_key_egreso",
+					"request_id"
+				]
+			},
+			"color": null,
+			"isPrivate": false,
+			"metaSortKey": 1704067200000,
+			"_type": "environment"
+		}
+	]
+}
+
